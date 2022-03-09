@@ -198,6 +198,13 @@ type DB struct {
 	kvSize    int
 }
 
+func (p *DB) GetkvData() []byte {
+	return p.kvData
+}
+func (p *DB) GetnodeData() []int {
+	return p.nodeData
+}
+
 func (p *DB) randHeight() (h int) {
 	const branching = 4
 	h = 1
