@@ -198,6 +198,55 @@ type DB struct {
 	kvSize    int
 }
 
+/*
+KvData:  存储 kv 数据， KvData = append(KvData,key...,value...)
+nodeData: 存储跳表的结构，包括跳表的每个节点在KvData的 offset,key length,value length,层高,以及这个节点在每层的右指针指向的节点的位置
+
+prevNode
+
+[]   node1 ---------------------------->  end
+[]   node1  --------------> node5 ----->  end
+[]   node1  ---> node3 ---> node5 ----->  end
+[]   node1,node2,node3,node4,node5,node6, end
+
+prevNode[4] = {0,0,0,0}  每一层，header节点在 nodeData的 位置 ，分别为0，0，0，0
+
+nodeData[]int = {
+	node1在kvdata中的offset,
+	key_length,
+	value_length,
+	node1节点层高,
+	node1所在第4层指向右节点在nodeData的位置, (就是end的位置)
+	node1所在第3层指向右节点在nodeData的位置, (就是node5的位置)
+	node1所在第2层指向右节点在nodeData的位置, (就是node3的位置)
+	node1所在第1层指向右节点在nodeData的位置, (就是node2的位置)
+
+	......其它节点既然已经有了位置，那么存储结构和上面类似了.....
+
+	end 在kvdata中的offset
+
+},
+具体 nodeData[]int ={} 详解
+首先，存储 第4层(最高层)的节点 的信息，包括 (offset,key_Length,Value_Length,层高)，占用下标 [0][1][2][3] 4个位置
+其次，从第 5个位置开始，下标为[4]，
+	存储 第4层节点对应 向右指针指向的节点，在 prevNode中的位置，也就是 end 的位置
+	存储 第3层节点对应 向右指针指向的节点，在 prevNode中的位置，也就是 node5 的位置
+	存储 第2层节点对应 向右指针指向的节点，在 prevNode中的位置，也就是 node3 的位置
+	存储 第1层节点对应 向右指针指向的节点，在 prevNode中的位置，也就是 node2 的位置
+
+	因为node1的高度为4，所以，node1 一共有 4个 指向向右 的节点，node1 有几个 向右节点，取决于 它的层高，而它的层高 取决于随机数
+
+再次，添加和删除 会不会影响原有节点下标
+	添加节点，不会影响下标，删除节点 也不影响下表，只会导致 一些节点，没有被链表索引到
+	几种特殊情况：
+		1.插入节点，是最小值，比如插入 node7 比node1 还小，是最小的，那么 链表preNode就要调整了。
+		2.插入节点，是最大的，类似处理
+		3.删除节点，比如删除node5, 每一层都要 调整，先找到pre
+		4.删除节点，比如删除node1,
+
+
+
+*/
 func (p *DB) GetkvData() []byte {
 	return p.kvData
 }
